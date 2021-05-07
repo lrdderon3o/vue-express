@@ -455,12 +455,14 @@ collectImagesUrlsFromSnippets((imagesUrlsOnSnippets) => {
 
     imagesUrlsOnSnippets = getPreparedUrlsInPagesObj(imagesUrlsOnSnippets);
 
-    // console.log('filterCollectedSnippetsUrls', filterCollectedSnippetsUrls.length);
+    // console.log('imagesUrlsOnSnippets', JSON.stringify(imagesUrlsOnSnippets));
 
     collectImagesUrlsFromPages((imagesUrlsOnPages) => {
         console.log('All images pages ulrs length', imagesUrlsOnPages.length);
 
         imagesUrlsOnPages = getPreparedUrlsInPagesObj(imagesUrlsOnPages);
+
+        console.log('imagesUrlsOnPages', JSON.stringify(imagesUrlsOnPages));
 
         const allImagesUrls = [
             ...Object.keys(imagesUrlsOnSnippets).reduce((result, key) => {
@@ -515,7 +517,7 @@ collectImagesUrlsFromSnippets((imagesUrlsOnSnippets) => {
                         return result;
                     }, {});
 
-                    changeImages(needUpdateCMSfiles);
+                    // changeImages(needUpdateCMSfiles);
 
                     // console.log('needUpdateCMSfiles', Object.keys(needUpdateCMSfiles).length);
                     // console.log('nonExistentFiles', nonExistentFiles);
