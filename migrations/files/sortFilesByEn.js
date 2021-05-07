@@ -1,0 +1,210 @@
+const parser = require('./../parser');
+
+const requestSettings = {
+    domain: 'https://wildtornado.casino-backend.com',
+    boundary: 'WebKitFormBoundarySuMN98yBW4WVoR41',
+    "cookie": "__cfduid=de7a76f1ef8be32eadfc792d2c39c539d1614590335; _ga=GA1.2.1865349641.1614590337; _ym_uid=1614590337283603234; _ym_d=1614590337; _gaexp=GAX1.2.jlMlDFeUQNSA4xPXx8EeHw.18774.1; referral_params=eJwrSi1OLYkvSCwuLs8vSokvyc9OzbO1LDS2rMo1TvX1NsqorPIINHfPzAAAU6YPVQ%3D%3D; trackers=IntcImdvb2dsZS1hbmFseXRpY3NcIjpcIjcwZDY2N2Q3LTUwOGYtNDE5YS05NDg3LTNlNzIyZmI0MTA5ZFwifSI%3D--631c2e74aa4f94ba8a5b8498b03fe8f76f5957e7; _gid=GA1.2.1122332493.1616995389; _casino_session=9c4d112f0a34dcf7f5685c7829d9dcf6; _ym_isad=2; cf_use_ob=0; _gat_UA-167804091-1=1"
+};
+const parserClass = new parser(requestSettings);
+// const allowedLangs = ['en', 'en-CA', 'en-NZ', 'en-AU', 'en-ZA', 'en-IE'];
+// const allowedLangs = ['en-IE'];
+
+const pageUrl = '/backend/cms/sites/4/files?category%5B%5D=slider-index-top';
+
+const collectLinksFromPage = (page) => {
+    const links = [];
+    const [files] = page.html.querySelectorAll('.cms-uploader-filelist');
+    if (files) {
+        const filesLinkRows = files.querySelectorAll('tr');
+        filesLinkRows.forEach((row) => {
+            const rowColumns = row.querySelectorAll('td');
+            const buttonsContainer = rowColumns[rowColumns.length - 1];
+            if (buttonsContainer) {
+                const editLink = buttonsContainer.querySelector('.btn.btn-default').rawAttributes.href;
+                links.push(editLink);
+            }
+        })
+    }
+    return links;
+};
+
+const desanitize = (string) => {
+    let ret = String(string).replace(/&gt;/g, '>');
+    ret = ret.replace(/&amp;gt/g, '>');
+    ret = ret.replace(/&lt;/g, '<');
+    ret = ret.replace(/&amp;lt;/g, '<');
+    ret = ret.replace(/&amp;/g, '&');
+    ret = ret.replace(/&quot;/g, '"');
+    ret = ret.replace(/&apos;/g, "'");
+    ret = ret.replace(/&#x000A;/g, '\r\n');
+    ret = ret.replace(/&#39;/g, '\'');
+    ret = ret.replace(/>;/g, '>');
+    ret = ret.replace(/&#x0020;/g, ' ');
+    return ret;
+};
+
+const collectEnFilesContent = (links, callback) => {
+
+    const content = [];
+
+    const next = () => {
+        const pageUrl = links.shift();
+        if (pageUrl) {
+            parserClass.getPage(pageUrl).then((page) => {
+                const description = page.html.querySelector('#file_description');
+                if (description) {
+                    const [text] = description.childNodes;
+                    content.push(text ? desanitize(text.rawText.trim()) : null);
+                }
+                next();
+            }).catch((error) => {
+                console.error('ERROR LOAD PAGE', error);
+                next();
+            });
+        } else {
+            callback(
+                content
+                    .filter(item => !!item)
+                    .map(item => item.replace(/\r\n/g, ''))
+            );
+        }
+    }
+
+    next();
+};
+
+parserClass.getPage(pageUrl).then((page) => {
+
+    const mirrors = page.mirrors
+        // .filter((lang) => {
+        //     return allowedLangs.indexOf(Object.keys(lang)[0]) !== -1;
+        // })
+        .map((lang) => {
+            return Object.values(lang)[0].replace('/edit', '');
+        });
+
+    // console.log('mirrors', mirrors);
+
+    const filesLinks = collectLinksFromPage(page);
+
+    collectEnFilesContent(filesLinks, (content) => {
+        content = content.map(item => item.replace(/\\\\/g, '\\').trim())
+            .map(item => JSON.parse(item))
+        // console.log('content', content); // TODO get mirrors and get similar files
+        const nextMirror = () => {
+            const mirror = mirrors.shift();
+            if (mirror) {
+                console.log('ACTIVE mirror', mirror);
+                parserClass.getPage(mirror).then((mirrorPage) => {
+                    const mirrorFilesLinks = collectLinksFromPage(mirrorPage);
+
+                    let replaceFilesCount = 0;
+                    const REMOVE = [];
+                    const next = () => {
+                        const fileUrl = mirrorFilesLinks.shift();
+                        if (fileUrl) {
+                            parserClass.getPage(fileUrl).then((page) => {
+                                const description = page.html.querySelector('#file_description');
+                                if (description) {
+                                    const [text] = description.childNodes;
+                                    let fileDescription = text ? desanitize(text.rawText.trim()) : null;
+                                    if (fileDescription) {
+                                        fileDescription = fileDescription.replace(/\r\n/g, '');
+                                        let replaceTo = content.find(({description}) => {
+                                            return fileDescription === description;
+                                        });
+                                        try {
+                                            const jsonDescription = JSON.parse(fileDescription);
+                                            replaceTo = content.find(({description}) => {
+                                                return jsonDescription.description === description;
+                                            });
+                                        } catch (e) {
+
+                                        }
+                                        if (replaceTo) {
+                                            const {name} = description.rawAttributes;
+                                            replaceFilesCount++;
+                                            const newValues = {
+                                                'file[description]': JSON.stringify(replaceTo)
+                                            };
+                                            const body = parserClass.getPreparedBody(page.html, newValues);
+                                            const valuesIdentical = fileDescription === JSON.stringify(replaceTo);
+                                            if (valuesIdentical) {
+                                                console.log('VALUES IDENTICAL');
+                                                next();
+                                            } else {
+                                                parserClass.updateFile(fileUrl.replace('/edit', ''), body).then((data) => {
+                                                    console.log('REPLACE : ' + name);
+                                                    console.log('OLD VALUE : ', fileDescription);
+                                                    console.log('NEW VALUE : ', JSON.stringify(replaceTo));
+                                                    next();
+                                                }).catch(() => {
+                                                    console.error('UPDATE file error: ', fileUrl);
+                                                })
+                                            }
+                                        } else {
+                                            REMOVE.push(fileUrl);
+                                            next();
+                                            // console.error('REMOVE: ' + fileUrl);
+                                        }
+                                    }
+                                } else {
+                                    next();
+                                }
+                            }).catch((error) => {
+                                console.error('ERROR LOAD FILE', error);
+                                next();
+                            });
+                        } else {
+                            console.log('REPLACED COUNT', replaceFilesCount);
+                            console.log('ORIGINAL EN IMAGES COUNT', content.length)
+                            console.log('REMOVE', REMOVE);
+                            nextMirror();
+                        }
+                    }
+                    next();
+
+                }).catch(() => {
+                    console.error('ERROR GET mirror');
+                    nextMirror();
+                });
+            } else {
+                console.log('END');
+
+            }
+        };
+        nextMirror();
+    })
+
+    // console.log('filesLinks', filesLinks);
+
+    // const newValues = {
+    //     'page[is_published]': 0
+    // };
+    //
+    // const prepareValues = {
+    //     'page[blocks_attributes][0][content]': desanitize
+    // };
+    //
+    // const next = () => {
+    //     const childPageUrl = pages.shift();
+    //     if (childPageUrl) {
+    //         parserClass.getPage(childPageUrl + '/edit').then((page) => {
+    //             const body = parserClass.getPreparedBody(page.html, newValues, prepareValues);
+    //             parserClass.updatePage(childPageUrl, body).then((data) => {
+    //                 console.log('Update success', childPageUrl);
+    //                 next();
+    //             })
+    //         }).catch((error) => {
+    //             console.error('ERROR EDIT PAGE', error);
+    //             next();
+    //         });
+    //     }
+    // };
+    // next();
+
+}).catch((error) => {
+    console.error('ERROR LOAD PAGE', error);
+});
+
+

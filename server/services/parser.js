@@ -26,37 +26,48 @@ module.exports = class Parser {
         return ret;
     };
 
-    getPreparedPageEditJSON(data) {
+    get defaultSanitize() {
         const sanitizeFields = ['snippet[content]', 'snippet[label]', 'page[blocks_attributes][0][content]', 'page[label]'];
-        const prepareValues = sanitizeFields.reduce((result, field) => {
+        return sanitizeFields.reduce((result, field) => {
             result[field] = this.desanitize
             return result;
         }, {});
+    }
 
+    getPreparedPageEditJSON(data) {
         const prepared = {
             locales: data.mirrors.map((locale) => {
                 return Object.keys(locale)[0];
             }),
-            fields: this.getPreparedBody(data.html, {}, prepareValues, true)
+            fields: this.getPreparedBody(data.html, {}, this.defaultSanitize, true)
         };
 
         prepared.preparedFields = Object.keys(prepared.fields).reduce((result, key) => {
 
+            const idRegexp = new RegExp(/\[([0-9]*)\]/, 'g');
             const getInsideBracketsRegexp = new RegExp(/\[(.*?)\]/, 'g');
             const replaceBracketsRegexp = /[\[\]]/g;
+            const simpleFields = ['page[label]', 'page[slug]'];
 
             if (key.indexOf('[category_ids]') !== -1) {
-                const categoryIdRegexp = new RegExp(/\[([0-9]*)\]/, 'g');
-                const categoryId = key.match(categoryIdRegexp)[0].replace(replaceBracketsRegexp, '');
+                const categoryId = key.match(idRegexp)[0].replace(replaceBracketsRegexp, '');
                 result['categories'] = result['categories'] || {};
                 const checkboxTitle = data.html.querySelector(`[name='${key}']`);
                 result['categories'][categoryId] = result['categories'][categoryId] || {
                     key,
                     title: checkboxTitle && checkboxTitle.nextElementSibling.rawText.replace(/\n/g, '')
                 };
-                result['categories'][categoryId].value = prepared.fields[key];
-            } else if (key.indexOf('snippet[') !== -1) {
+                result['categories'][categoryId].value = +prepared.fields[key];
+            } else if (key.indexOf('snippet[') !== -1 || simpleFields.indexOf(key) !== -1) {
                 const title = key.match(getInsideBracketsRegexp)[0].replace(replaceBracketsRegexp, '');
+                result[title] = result[title] || {
+                    key,
+                    title
+                };
+                result[title].value = prepared.fields[key];
+            } else if (key.indexOf('page[blocks_attributes]') !== -1 && key.indexOf('[content]') !== -1) {
+                const identifier = key.replace('[content]', '[identifier]');
+                const title = prepared.fields[identifier];
                 result[title] = result[title] || {
                     key,
                     title
@@ -73,11 +84,66 @@ module.exports = class Parser {
             prepared.preparedFields.published = {
                 key: 'page[is_published]',
                 title: 'published',
-                value: published
+                value: +published
             }
         }
 
         return prepared;
+    }
+
+    getLongPoolRequest(newValues, locales, page) {
+        return {
+            page,
+            domain: this.requestSettings.domain,
+            cookie: this.requestSettings.cookie,
+            newValues,
+            pages: locales.map((locale) => {
+                const pageLocale = page.mirrors.find((mirror) => {
+                    return locale in mirror;
+                });
+                if (pageLocale) {
+                    return {
+                        locale,
+                        pageUrl: Object.values(pageLocale)[0]
+                    }
+                }
+            }).filter(i => i)
+        }
+    }
+
+    applyRequest(requestData, response, closeCallback) {
+        const {pages, newValues} = requestData;
+
+        const log = (message, type = 'success') => {
+            response.write(`data: ${JSON.stringify({message, type})}\n\n`);
+        };
+
+        const close = () => {
+            response.end('data: close\n\n');
+            closeCallback();
+        }
+
+        const next = () => {
+            const childPage = pages.shift();
+            if (childPage) {
+                const {locale, pageUrl} = childPage;
+                log(`Start edit page ${pageUrl} (${locale})`);
+                this.getPage(pageUrl).then((page) => {
+                    log(`Success get page`);
+                    const body = this.getPreparedBody(page.html, newValues, this.defaultSanitize);
+                    this.updatePage(pageUrl.replace('/edit', ''), body).then(() => {
+                        log(`Success update page`);
+                        next();
+                    })
+                }).catch((error) => {
+                    log(`ERROR EDIT PAGE ${pageUrl} (${locale})`, 'error');
+                    next();
+                });
+            } else {
+                close();
+            }
+        }
+        next();
     }
 
     getPage(page) {
@@ -153,8 +219,6 @@ module.exports = class Parser {
                     value = prepareValues[name](value);
                 }
                 const getFileContent = () => {
-                    // Content-Type: application/octet-stream
-                    // console.log(type);
                     if (type === 'file') {
                         if (newValues.fileDescription) {
                             return `; filename="${newValues.fileDescription.filename}"\r\nContent-Type: ${newValues.fileDescription.type}`;
@@ -180,13 +244,6 @@ module.exports = class Parser {
     }
 
     updatePage(page, form) {
-        // const body = "------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"utf8\"\r\n\r\n✓\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"_method\"\r\n\r\npatch\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"authenticity_token\"\r\n\r\ntjDjpIYodobBDUB+8uwpNIyy9EYyk9L3KA9++ZJckW6yMk3JGWfqn8/DvArlQhxsgrxwEUdRtk8rwI1XL7DnYA==\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[label]\"\r\n\r\nTable Games\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[slug]\"\r\n\r\ntable_games\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[layout_id]\"\r\n\r\n4\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[parent_id]\"\r\n\r\n49\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[target_page_id]\"\r\n\r\n\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][679]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][18]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][108]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][180]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][111]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][110]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][109]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][382]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][19]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[category_ids][20]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][0][content]\"\r\n\r\n\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][0][identifier]\"\r\n\r\ncontent\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][1][content]\"\r\n\r\nTable Games Online Casino\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][1][identifier]\"\r\n\r\ntitle\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][2][content]\"\r\n\r\n\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][2][identifier]\"\r\n\r\nkeywords\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][3][content]\"\r\n\r\nTable Games ★ WildTornado ✔ 3000+ Hottest Games ✔ Welcome offer UP to €300/0.03BTC and 150 Free Spins ✔ Fastest Withdrawal Process 🎁\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][3][identifier]\"\r\n\r\ndescription\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[is_published]\"\r\n\r\n0\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"page[is_published]\"\r\n\r\n1\r\n------WebKitFormBoundarySwQb9c8whheicsBn\r\nContent-Disposition: form-data; name=\"commit\"\r\n\r\nUpdate Page\r\n------WebKitFormBoundarySwQb9c8whheicsBn--\r\n";
-        // const body = "------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"utf8\"\r\n\r\n✓\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"_method\"\r\n\r\npatch\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"authenticity_token\"\r\n\r\nGbLrChA/lfzMx06TxNW+ExUT6hkAMg4uKGjwx2N/EDYdsEVnj3AJ5cIJsufTe4tLGx1uTnXwapYrpwNp3pNmOA==\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[label]\"\r\n\r\nTable Games\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[slug]\"\r\n\r\ntable_games\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[layout_id]\"\r\n\r\n4\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[parent_id]\"\r\n\r\n49\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[target_page_id]\"\r\n\r\n\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][679]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][18]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][108]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][180]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][111]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][110]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][109]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][382]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][19]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[category_ids][20]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][0][content]\"\r\n\r\n\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][0][identifier]\"\r\n\r\ncontent\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][1][content]\"\r\n\r\nTable Games Online Casino\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][1][identifier]\"\r\n\r\ntitle\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][2][content]\"\r\n\r\n\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][2][identifier]\"\r\n\r\nkeywords\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][3][content]\"\r\n\r\nTable Games ★ WildTornado ✔ 3000+ Hottest Games ✔ Welcome offer UP to €300/0.03BTC and 150 Free Spins ✔ Fastest Withdrawal Process 🎁\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[blocks_attributes][3][identifier]\"\r\n\r\ndescription\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[is_published]\"\r\n\r\n0\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"page[is_published]\"\r\n\r\n1\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN\r\nContent-Disposition: form-data; name=\"commit\"\r\n\r\nUpdate Page\r\n------WebKitFormBoundaryWx2CZwAiGxE19IMN--\r\n";
-
-        // console.log(form);
-        // console.log('----------------');
-        // console.log(body);
-
         return fetch(`${this.requestSettings.domain}${page}`, {
             "headers": {
                 "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",

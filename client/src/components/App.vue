@@ -7,9 +7,6 @@
     <nav>
       <span>Navigation</span>
       <router-link to="/" exact>Edit page/snippet</router-link>
-      <router-link to="/about">About</router-link>
-      <router-link to="/contacts">Contacts</router-link>
-      <router-link to="/!@#$%">404 page</router-link>
     </nav>
     <router-view></router-view>
   </div>
