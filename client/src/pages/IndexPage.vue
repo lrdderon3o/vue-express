@@ -153,7 +153,6 @@ export default {
       }).finally(() => {
         this.requestInProgress = false;
       });
-      // https://wildtornado.casino-backend.com/backend/cms/sites/4/pages/2897/edit
     },
     generateResult() {
       this.updateResult = this.fields.reduce((result, field) => {

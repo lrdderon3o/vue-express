@@ -1,10 +1,6 @@
 const parser = require('./../parser');
 
-const requestSettings = {
-    domain: 'https://wildtornado.casino-backend.com',
-    boundary: 'WebKitFormBoundaryFX2wOJjgGzdfLVZb',
-    "cookie": "_ga=GA1.2.1865349641.1614590337; _ym_uid=1614590337283603234; _ym_d=1614590337; _gaexp=GAX1.2.jlMlDFeUQNSA4xPXx8EeHw.18774.1; trackers=IntcImdvb2dsZS1hbmFseXRpY3NcIjpcIjcwZDY2N2Q3LTUwOGYtNDE5YS05NDg3LTNlNzIyZmI0MTA5ZFwifSI%3D--631c2e74aa4f94ba8a5b8498b03fe8f76f5957e7; __cfduid=de3559bbb91480a4e34e1d939912be47f1617257186; _casino_session=353dbc7f95da844fc1f350c62b16be49; referral_params=eJxLTixJTc8vqlQ1dVI1dbEtzslMSS3SzcxLSa3QLckvAACu5Qse; locale=InJ1Ig%3D%3D--1b10702a9ebe972b8e9bf239d1177d913e1f1eb5; cf_use_ob=0; _gid=GA1.2.1773881780.1618397436; _ym_isad=2; _gat_UA-167804091-1=1"
-};
+
 const parserClass = new parser(requestSettings);
 const allowedLangs = ['el'];
 
