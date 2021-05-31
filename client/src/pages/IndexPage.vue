@@ -196,7 +196,12 @@ export default {
         if (field.type === 'checkboxes') {
           field.values.forEach((checkbox) => {
             if (checkbox.needUpdate) {
-              result[checkbox.key] = +checkbox.value;
+              if (checkbox.key.indexOf('category_ids') !== -1) {
+                result['categories'] = result['categories'] || {};
+                result['categories'][checkbox.title] = +checkbox.value;
+              } else {
+                result[checkbox.key] = +checkbox.value;
+              }
             }
           })
         } else if (field.type === 'text') {

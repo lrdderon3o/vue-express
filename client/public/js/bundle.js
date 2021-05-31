@@ -313,7 +313,12 @@ exports.default = {
         if (field.type === 'checkboxes') {
           field.values.forEach(function (checkbox) {
             if (checkbox.needUpdate) {
-              result[checkbox.key] = +checkbox.value;
+              if (checkbox.key.indexOf('category_ids') !== -1) {
+                result['categories'] = result['categories'] || {};
+                result['categories'][checkbox.title] = +checkbox.value;
+              } else {
+                result[checkbox.key] = +checkbox.value;
+              }
             }
           });
         } else if (field.type === 'text') {
@@ -399,7 +404,7 @@ if (module.hot) {(function () {  var hotAPI = require("vue-hot-reload-api")
   if (!module.hot.data) {
     hotAPI.createRecord("data-v-0bc406a0", __vue__options__)
   } else {
-    hotAPI.rerender("data-v-0bc406a0", __vue__options__)
+    hotAPI.reload("data-v-0bc406a0", __vue__options__)
   }
 })()}
 },{"../services/cookies.service":7,"axios":8,"vue":39,"vue-hot-reload-api":36,"vueify/lib/insert-css":41}],6:[function(require,module,exports){

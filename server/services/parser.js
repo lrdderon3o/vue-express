@@ -116,7 +116,7 @@ module.exports = class Parser {
     }
 
     applyRequest(requestData, response, closeCallback) {
-        const {pages, newValues, script} = requestData;
+        let {pages, 'newValues': originalNewValues, script} = requestData;
 
         const log = (message, type = 'success') => {
             response.write(`data: ${JSON.stringify({message, type})}\n\n`);
@@ -130,10 +130,22 @@ module.exports = class Parser {
         const next = () => {
             const childPage = pages.shift();
             if (childPage) {
+                const newValues = JSON.parse(JSON.stringify(originalNewValues));
                 const {locale, pageUrl} = childPage;
                 log(`Start edit page ${pageUrl} (${locale})`);
                 this.getPage(pageUrl).then((page) => {
                     log(`Success get page`);
+
+                    if (newValues.categories) {
+                        const {categories} = this.getPreparedPageEditJSON(page).preparedFields || {};
+                        Object.values(categories).forEach((category) => {
+                            if (category.title in newValues.categories && !isNaN(+newValues.categories[category.title])) {
+                                newValues[category.key] = +newValues.categories[category.title];
+                            }
+                        });
+                        delete newValues.categories;
+                    }
+
                     const jsonBody = this.getPreparedBody(page.html, newValues, this.defaultSanitize, true);
 
                     if (script) {
@@ -146,7 +158,7 @@ module.exports = class Parser {
                         this.updatePage(pageUrl.replace('/edit', ''), body).then(() => {
                             log(`Success update page`);
                             next();
-                        })   
+                        })
                     } else {
                         log(`newValues is empty`, 'error');
                         next();
