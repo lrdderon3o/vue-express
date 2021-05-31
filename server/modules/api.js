@@ -157,8 +157,8 @@ app.post('/update-page', (req, res) =>  {
         const [domain, pageUrl] = page.split(splitter);
         const parser = new Parser(domain, auth);
         parser.getPage(splitter + pageUrl).then((data) => {
-            const {locales, newValues} = req.body;
-            const longPoolRequest = parser.getLongPoolRequest(newValues, locales, data);
+            const {locales, newValues, script} = req.body;
+            const longPoolRequest = parser.getLongPoolRequest(newValues, locales, data, script);
             setLongPoolRequest(page, longPoolRequest);
             res.json({requestId: page});
         }).catch(() => {

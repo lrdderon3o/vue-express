@@ -94,7 +94,7 @@ module.exports = class Parser {
         return prepared;
     }
 
-    getLongPoolRequest(newValues, locales, page) {
+    getLongPoolRequest(newValues, locales, page, script) {
         return {
             page,
             domain: this.requestSettings.domain,
@@ -110,12 +110,13 @@ module.exports = class Parser {
                         pageUrl: Object.values(pageLocale)[0]
                     }
                 }
-            }).filter(i => i)
+            }).filter(i => i),
+            script
         }
     }
 
     applyRequest(requestData, response, closeCallback) {
-        const {pages, newValues} = requestData;
+        const {pages, newValues, script} = requestData;
 
         const log = (message, type = 'success') => {
             response.write(`data: ${JSON.stringify({message, type})}\n\n`);
@@ -133,11 +134,23 @@ module.exports = class Parser {
                 log(`Start edit page ${pageUrl} (${locale})`);
                 this.getPage(pageUrl).then((page) => {
                     log(`Success get page`);
+                    const jsonBody = this.getPreparedBody(page.html, newValues, this.defaultSanitize, true);
+
+                    if (script) {
+                        eval(script);
+                    }
+
                     const body = this.getPreparedBody(page.html, newValues, this.defaultSanitize);
-                    this.updatePage(pageUrl.replace('/edit', ''), body).then(() => {
-                        log(`Success update page`);
+
+                    if (Object.keys(newValues).length) {
+                        this.updatePage(pageUrl.replace('/edit', ''), body).then(() => {
+                            log(`Success update page`);
+                            next();
+                        })   
+                    } else {
+                        log(`newValues is empty`, 'error');
                         next();
-                    })
+                    }
                 }).catch((error) => {
                     log(`ERROR EDIT PAGE ${pageUrl} (${locale})`, 'error');
                     next();

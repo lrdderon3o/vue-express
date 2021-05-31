@@ -34,6 +34,40 @@
           <input type="checkbox" v-model="locale.checked">
         </div>
       </div>
+      <div class="script-container" v-if="fields && fields.length">
+        <div class="desc">
+          You can use script for preparing data<br/>
+          Available methods:<br/>
+           - parse (node-html-parser)<br/>
+           - jsonBody (model of page)<br/>
+           - newValues (update values object)<br/>
+           - log (send message to front)<br/>
+          For Example: <br/>
+          <pre>
+            // Remove tournament from tournament page
+            const contentProp = 'page[blocks_attributes][0][content]';
+            const removeBySign = 'tournaments/playson-lucky-weeks'
+            const content = jsonBody && jsonBody[contentProp];
+            if (content) {
+                const newHTML = parse(content);
+                let removed = false;
+                newHTML.querySelectorAll('li').forEach((li) => {
+                    const removeLi = li.toString().indexOf(removeBySign) !== -1;
+                    if (removeLi) {
+                        removed = true;
+                        log('Tournament already removed');
+                        li.remove();
+                    }
+                });
+                if (!removed) {
+                    log('Tournament not found', 'error');
+                }
+                newValues[contentProp] = newHTML.toString();
+            }
+          </pre>
+        </div>
+        <textarea placeholder="Script" rows="16" v-model="script"></textarea>
+      </div>
       <button v-bind:disabled="requestInProgress" v-if="fields && fields.length" v-on:click="generateResult">Generate result</button>
       <div class="result">
         {{updateResult}}
@@ -122,6 +156,7 @@ export default {
       locales: [],
       fields: [],
       updateResult: null,
+      script: '',
       logs: []
     }
   },
@@ -174,12 +209,13 @@ export default {
     },
     updatePage() {
       const locales = this.locales.filter((item) => item.checked).map(item => item.title);
-      if (this.updateResult && Object.keys(this.updateResult).length && locales.length) {
+      if ((this.updateResult && Object.keys(this.updateResult).length || this.script) && locales.length) {
         this.requestInProgress = true;
         const params = CookiesService.setAuthParams({page: this.url});
         const body = {
           locales,
-          newValues: this.updateResult
+          newValues: this.updateResult,
+          script: this.script
         };
         axios.post('/update-page', body, {params}).then(({data} = {}) => {
           this.logs = [];

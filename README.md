@@ -5,7 +5,7 @@
 ## TODO
 
 ```
-1. Add eval scripts for data 
+1. Add eval scripts for data - DONE
 2. Add localization duplicate
 3. Add search in snippets and page
 4. Add file manager
