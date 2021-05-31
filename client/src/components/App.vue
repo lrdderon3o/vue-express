@@ -7,6 +7,7 @@
     <nav>
       <span>Navigation</span>
       <router-link to="/" exact>Edit page/snippet</router-link>
+      <router-link to="/files" exact>Edit files</router-link>
     </nav>
     <router-view></router-view>
   </div>

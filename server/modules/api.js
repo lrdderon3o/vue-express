@@ -13,6 +13,84 @@ const removeLongPoolRequest = (key) => {
     delete longPoolRequests[key];
 };
 
+const getFilesMirrors = (parser) => {
+    const pageUrl = '/backend/cms/sites/4/files';
+    return parser.getPage(pageUrl).then(({mirrors}) => {
+        return mirrors.map((lang) => {
+            return Object.values(lang)[0].replace('/edit', '');
+        });
+    });
+}
+
+const collectFilesPages = (parser, pageUrl) => {
+    const filesPages = [];
+    return new Promise((resolve, reject) => {
+        parser.getPage(pageUrl).then((page) => {
+            const paginationLinks = page.html.querySelectorAll(`a[href^="${pageUrl}?page="]`);
+            const paginationPages = paginationLinks.map((item) => {
+                return String(item.rawAttributes.href || '').split('page=')[1];
+            }).filter((item) => {
+                return !!item;
+            }).map((item) => {
+                return +item;
+            });
+            const maxPage = Math.max.apply(null, paginationPages);
+
+            for (let i = 1; i <= maxPage; i++) {
+                filesPages.push(pageUrl + '?page=' + i);
+            }
+            resolve(filesPages);
+        }).catch((err) => {
+            reject(err);
+        });
+    });
+}
+
+const collectFilesFromPage = (parser, filesPages) => {
+
+    const files = [];
+
+    return new Promise((resolve, reject) => {
+
+        const next = () => {
+            const filesPageUrl = filesPages.shift();
+            if (filesPageUrl) {
+                parser.getPage(filesPageUrl).then((page) => {
+                    const rows = page.html.querySelectorAll('[id^=comfy_cms_file]');
+                    rows.forEach((row) => {
+                        const fileId = +row.rawAttributes.id.replace('comfy_cms_file_', '');
+                        if (fileId) {
+                            const icon = row.querySelector('.icon');
+                            const titleItem = row.querySelector('.item-title');
+                            const titleLink = titleItem && titleItem.querySelector('a');
+                            const fileObj = {
+                                fileId,
+                                icon: icon && parser.desanitize(icon.rawAttributes.style),
+                                title: titleLink && parser.desanitize(titleLink.innerText),
+                                editUrl: titleLink && parser.desanitize(titleLink.rawAttributes.href)
+                            };
+                            if (fileObj.icon) {
+                                const searchValue = '/system/comfy/cms/';
+                                fileObj.icon = fileObj.icon.replace(searchValue, parser.requestSettings.domain + searchValue)
+                            }
+                            files.push(fileObj);
+                        }
+                    });
+                    next();
+                }).catch((err) => {
+                    console.error('Can`t get files page url', err);
+                    next();
+                })
+            } else {
+             resolve(files)
+            }
+        }
+
+        next();
+
+    });
+}
+
 app.get('/page-info', (req, res) => {
     const {page, auth} = req.query || {};
     if (page && auth) {
@@ -29,6 +107,49 @@ app.get('/page-info', (req, res) => {
     }
 });
 
+app.get('/search-files', (req, res) => {
+    const {fileName, auth} = req.query || {};
+    if (fileName && auth) {
+        const parser = new Parser(null, auth);
+        getFilesMirrors(parser).then((mirrors = []) => {
+            let filesPages = [];
+
+            const next = () => {
+                const mirror = mirrors.shift();
+                if (mirror) {
+                    collectFilesPages(parser, mirror).then((mirrorPages) => {
+                        if (mirrorPages.length) {
+                            filesPages = [...filesPages, ...mirrorPages];
+                        } else {
+                            filesPages.push(mirror);
+                        }
+                        next();
+                    }).catch(() => {
+                        next();
+                    })
+                } else {
+                    collectFilesFromPage(parser, filesPages).then((files) => {
+                        const searchedFiles = files.filter((file) => {
+                            return String(file.title).toLowerCase().indexOf(fileName.toLowerCase()) !== -1 ||
+                            String(file.icon).toLowerCase().indexOf(fileName.toLowerCase()) !== -1;
+                        })
+                        res.json({...{files: searchedFiles}});
+                    }).catch(() => {
+                        res.status(500).send('Collect files from pages error');
+                    })
+                }
+            }
+
+            next();
+
+        }).catch(() => {
+            res.status(500).send('Get files mirrors error');
+        });
+    } else {
+        res.status(500).send('Auth error')
+    }
+});
+
 app.post('/update-page', (req, res) =>  {
     const {page, auth} = req.query || {};
     if (page && auth) {
@@ -40,6 +161,28 @@ app.post('/update-page', (req, res) =>  {
             const longPoolRequest = parser.getLongPoolRequest(newValues, locales, data);
             setLongPoolRequest(page, longPoolRequest);
             res.json({requestId: page});
+        }).catch(() => {
+            res.status(500).send('Get page error');
+        })
+    } else {
+        res.status(500).send('Auth error')
+    }
+});
+
+app.post('/update-one-page', (req, res) =>  {
+    const {page, auth} = req.query || {};
+    if (page && auth) {
+        const splitter = '/backend';
+        const [domain, pageUrl] = page.split(splitter);
+        const parser = new Parser(domain, auth);
+        let {newValues} = req.body;
+        parser.getPage(splitter + pageUrl).then((page) => {
+            const body = parser.getPreparedBody(page.html, newValues, parser.defaultSanitize);
+            parser.updatePage(splitter + pageUrl.replace('/edit', ''), body).then(() => {
+                res.json('Update done');
+            }).catch(() => {
+                res.status(500).send('Update page error');
+            })
         }).catch(() => {
             res.status(500).send('Get page error');
         })

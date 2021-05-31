@@ -28,7 +28,7 @@
         </div>
       </div>
       <div class="field-row checkboxes-container" v-if="locales && locales.length">
-        <div class="title">Update page on locales</div>
+        <div class="title">Update page on locales <button v-on:click="selectAllLocales()">Select all</button></div>
         <div class="checkbox" v-for="locale in locales">
           {{locale.title}}
           <input type="checkbox" v-model="locale.checked">
@@ -128,6 +128,8 @@ export default {
   methods: {
     getPage() {
       this.requestInProgress = true;
+      this.updateResult = null;
+      this.logs = [];
       const params = CookiesService.setAuthParams({page: this.url});
       axios.get('/page-info', {params}).then(({data} = {}) => {
         this.locales = data.locales.map((title) => {
@@ -186,6 +188,11 @@ export default {
           this.requestInProgress = false;
         });
       }
+    },
+    selectAllLocales() {
+      this.locales.forEach((locale) => {
+        locale.checked = true;
+      });
     },
     setPageListener(params) {
       const paramsQuery = '?' + Object.keys(params).map((key) => {

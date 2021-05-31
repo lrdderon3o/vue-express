@@ -4,6 +4,7 @@ const { parse } = require('node-html-parser');
 module.exports = class Parser {
 
     constructor(domain, cookie) {
+        domain = domain || 'https://wildtornado.casino-backend.com';
         this.requestSettings = {
             domain,
             cookie,
@@ -27,7 +28,8 @@ module.exports = class Parser {
     };
 
     get defaultSanitize() {
-        const sanitizeFields = ['snippet[content]', 'snippet[label]', 'page[blocks_attributes][0][content]', 'page[label]'];
+        const sanitizeFields = ['snippet[content]', 'snippet[label]', 'page[blocks_attributes][0][content]',
+            'page[label]', 'file[label]', 'file[description]'];
         return sanitizeFields.reduce((result, field) => {
             result[field] = this.desanitize
             return result;
@@ -36,9 +38,10 @@ module.exports = class Parser {
 
     getPreparedPageEditJSON(data) {
         const prepared = {
-            locales: data.mirrors.map((locale) => {
+            locales: (data.mirrors || []).map((locale) => {
                 return Object.keys(locale)[0];
             }),
+            mirrors: (data.mirrors || []),
             fields: this.getPreparedBody(data.html, {}, this.defaultSanitize, true)
         };
 
@@ -47,7 +50,7 @@ module.exports = class Parser {
             const idRegexp = new RegExp(/\[([0-9]*)\]/, 'g');
             const getInsideBracketsRegexp = new RegExp(/\[(.*?)\]/, 'g');
             const replaceBracketsRegexp = /[\[\]]/g;
-            const simpleFields = ['page[label]', 'page[slug]'];
+            const simpleFields = ['page[label]', 'page[slug]', 'file[description]'];
 
             if (key.indexOf('[category_ids]') !== -1) {
                 const categoryId = key.match(idRegexp)[0].replace(replaceBracketsRegexp, '');
