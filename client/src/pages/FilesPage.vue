@@ -7,7 +7,7 @@
     <div class="container">
       <div class="files-table">
         <tbody>
-          <template v-for="file in files">
+          <template v-for="(file, index) in files">
             <tr class="file">
               <td class="icon" v-bind:style="file.icon"></td>
               <td class="id">{{file.fileId}}</td>
@@ -20,8 +20,8 @@
                   <div class="title">{{field.title}}</div>
                   <div class="text-container" v-if="field.type === 'text'" v-bind:class="field.title">
                     <div class="form-group" v-bind:class="{'selected': field.needUpdate}">
-                      <input type="checkbox" v-bind:id="field.key" v-model="field.needUpdate">
-                      <label v-bind:for="field.key">Update field</label>
+                      <input type="checkbox" v-bind:id="field.key + '-' + index" v-model="field.needUpdate">
+                      <label v-bind:for="field.key + '-' + index">Update field</label>
                     </div>
                     <textarea v-bind:rows="field.title === 'content' ? 15 : 2" v-model="field.value"></textarea>
                   </div>
@@ -30,8 +30,8 @@
                       <div class="title-checkbox-group">
                         {{checkbox.title}}
                         <div class="form-group" v-bind:class="{'selected': checkbox.needUpdate}">
-                          <input type="checkbox" v-bind:id="checkbox.key" v-model="checkbox.needUpdate">
-                          <label v-bind:for="checkbox.key">Update field</label>
+                          <input type="checkbox" v-bind:id="checkbox.key + '-' + index" v-model="checkbox.needUpdate">
+                          <label v-bind:for="checkbox.key + '-' + index">Update field</label>
                         </div>
                       </div>
                       <input type="checkbox" v-model="checkbox.value">
