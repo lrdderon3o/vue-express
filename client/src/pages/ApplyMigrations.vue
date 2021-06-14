@@ -146,6 +146,13 @@ export default {
       this.pages = [];
       this.migration = '';
       this.requestInProgress = true;
+
+      const spliceFromIndex = this.updateResult.findIndex(({editUrl}) => {
+        return editUrl === 'https://wildtornado.casino-backend.com/backend/cms/sites/4/pages/2391/edit';
+      });
+
+      this.updateResult = this.updateResult.splice(spliceFromIndex, this.updateResult.length);
+
       const next = () => {
         const page = this.updateResult.shift();
         if (page) {

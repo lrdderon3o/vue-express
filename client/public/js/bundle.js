@@ -172,6 +172,15 @@ exports.default = {
       this.pages = [];
       this.migration = '';
       this.requestInProgress = true;
+
+      var spliceFromIndex = this.updateResult.findIndex(function (_ref3) {
+        var editUrl = _ref3.editUrl;
+
+        return editUrl === 'https://wildtornado.casino-backend.com/backend/cms/sites/4/pages/2391/edit';
+      });
+
+      this.updateResult = this.updateResult.splice(spliceFromIndex, this.updateResult.length);
+
       var next = function next() {
         var page = _this3.updateResult.shift();
         if (page) {
@@ -183,8 +192,8 @@ exports.default = {
           var params = _cookies2.default.setAuthParams({ page: editUrl });
           delete page.editUrl;
           _axios2.default.post('/update-one-page', body, { params: params }).then(function () {
-            var _ref3 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
-                data = _ref3.data;
+            var _ref4 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+                data = _ref4.data;
 
             _this3.logs.push({ message: editUrl + ' ' + data + (' (' + body.locale + ')'), type: 'success' });
           }).catch(function () {
