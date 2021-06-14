@@ -10,7 +10,7 @@ var data = [].reduce.call(document.querySelectorAll('tr'),  (result, row) => {
 }, {});
 JSON.stringify(data);
 
-const migrationsDesc = [
+let migrationsDesc = [
     {
         locales: ['en', 'en-CA', 'en-NZ', 'en-AU', 'en-ZA', 'en-IE'],
         data: "{\"blizzard-royale\":{\"description\":\"Play the Blizzard Royal Slots here ➤ Without having to download any files or create an account ✅ Find out more about this games and where you can play it.\"},\"casino-game/pragmatic/the-dog-house\":{\"description\":\"The Dog House Slot Game by Classic vegas slots, roulette and blackjack 🎲 Play for Real Money at Wild Tornado Casino ♣\"},\"blog/tag/play-ngo/\":{\"description\":\"Play Play N'Go Online Slots at wildtornado.casino ➤ Popular slots and classic slot machines 🎰 Play on WildTornado Casino\"},\"tournaments/drops-and-wins\":{\"description\":\"Play the popular Drops and Wins Slots ➤ Without having to download any files or create an account ✅ Wild Tornado No Deposit Bonus for all players!\"},\"blog/slots/rise-of-olympus-by-play-n-go-is-delightful/amp/\":{\"description\":\"Play Rise of The Olympus Slot at wildtornado.casino ➤ Сompare customer ratings ✚ Big winning potential 🎰 Play Slot and Win Real Money 🎲\"},\"blog/crypto/trending-bitcoin-slots/amp/\":{\"description\":\"Play Trending Bitcoin Slots for Free at the wildtornado.casino ➤ Without having to create an account first 🎰Play this casino game for free and win real money! 🎲\"},\"games/bonus_buy\":{\"description\":\"Play the Free Version of Bonus Buy Slots here ➤ Exclusively on Wild Tornado Casino 🎰 Play this casino game for free and win real money! 🎲\"},\"tournaments/cash-splash\":{\"description\":\"Play the Cash Splash Slot Machine for Free Online ➤ Enjoy it on your iPhone, iPad, and iPod touch  Play this casino game for free and win real money! 🎲\"},\"casino-game/playngo/octopus-treasure\":{\"description\":\"Octopus Treasure Slot Machine is now Available online ➤ Progressive Jackpots and Fast payouts 🃏 Play for Real Money at Wild Tornado Casino ♣\"},\"casino-game/quickfire/almighty-aztec\":{\"description\":\"Almighty Aztec Slot Machine is now Available online ➤ Get Your Welcome Bonus ➤ Wild Tornado No Deposit Bonus for all players!\"},\"blog/,dragon-maiden-slot-by-play-n-go-mega-ways-mega-wins/amp/\":{\"description\":\"Play Dragon Maiden Online Slots at wildtornado.casino ➤ Сompare customer ratings ✚ Big winning potential 🎰 Play this casino game for free and win real money! 🎲\"},\"blog/big-wins/a-lucky-player-wins-12-btc-while-cuddling-cute-cats/amp/\":{\"description\":\"Learn about lucky player that win Diamond Cats Jackpot ➤ Enjoy it on your iPhone, iPad, and iPod touch  Find out more about this game and where you can play it.\"},\"casino-game/pragmatic/christmas-carol-megaways\":{\"description\":\"Christmas Carol Megaways Slot Machine Games by Wildtornado ➤ Play the best slots and table games for free 🎰 Wild Tornado No Deposit Bonus for all players!\"},\"ru/casino-game/playngo/rise-of-olympus\":{\"description\":\"Rise of Olympus Slot Machine by is now Available online ➤ Exclusively on Wild Tornado Casino 🎰 Play for free now! ☚\"},\"games/dropwins\":{\"description\":\"Try out the Free Demo Version of the Dropwins Games  ➤ Slots, Roulette, Blackjack, and more 🃏 Free play online for real money ♠️\"},\"casino-game/playngo/golden-colts\":{\"description\":\"Get ready for Golden Colts Slots ➤ No Download ✚ No Registration ✅  Find out more about this game ➤ Latest Tips and Tricks\"},\"promotions/tornado-weekend\":{\"description\":\"Check out Tornado Weekend Bonuses right here ➤ Get Your Free Spin Bonus On Wild Tornado Casino ➤ Play Slot and Win Real Money 🎲\"},\"blog/\":{\"description\":\"Check out our Blogs right here at wildtornado.casino ➤ Progressive Jackpots and Fast payouts 🃏 All about Casino, Slots, Roulette. Latest Bitcoin Gambling News 🎲 \"},\"games/all/yggdrasil\":{\"description\":\"Check out Yggdrasil Slots right here at wildtornado.casino ➤ Classic vegas slots, roulette and blackjack 🎲 Play for free now! ☚\"},\"games/all/belatra\":{\"description\":\"Play the Free Version of Belatra Slots here ➤ Start winning money right now💰 Play this casino game for free and win real money! 🎲\"},\"games/all/bgaming\":{\"description\":\"Play Bgaming Online Slots at wildtornado.casino ➤ Exclusively on Wild Tornado Casino 🎰 Free play online for real money ♠️\"},\"games/all/booming\":{\"description\":\"Check out Booming Slots right here at wildtornado.casino ➤ Win Strategy ✚ Tips 🎰 Free play online for real money ♠️\"},\"games/all/netgame\":{\"description\":\"Play the Free Version of Netgame Slots here ➤ Free Coins ✚ Bonus Games &amp; Jackpot ♣ Play for Real Money at Wild Tornado Casino ♣\"},\"games/all/truelab\":{\"description\":\"Try out the Truelab Slot Machines  ➤ Play the best slots and table games for free 🎰 Find out more about this game and where you can play it.\"},\"games/all/platipus\":{\"description\":\"Play Platipus slots for Free at the wildtornado.casino ➤ Win Strategy ✚ Tips 🎰 Wild Tornado No Deposit Bonus for all players!\"},\"games/all/endorphina\":{\"description\":\"Endorphina Slot Machines is now Available online ➤ Progressive Jackpots and Fast payouts 🃏 Play this casino game for free and win real money! 🎲\"}}"
@@ -57,7 +57,7 @@ const migrationsDesc = [
     },
 ];
 
-const migrationsTitles = [
+let migrationsTitles = [
     {
         locales: ['en', 'en-CA', 'en-NZ', 'en-AU', 'en-ZA', 'en-IE'],
         data: "{\"games/table_games\":{\"description\":\"Table Games Reviews, Tips and Tricks. Table Games for Real Money\"},\"games/casino_slots\":{\"description\":\"Play Casino Slots For Free with Real Money Jackpot 🎰\"},\"blizzard-royale\":{\"description\":\"Play Blizzard Royale™ Slot Machine and Win Real Money 🎰\"},\"games/hot\":{\"description\":\"Check out our Hot Game Slots right here at Wild Tornado\"},\"about-wildtornado\":{\"description\":\"The Most Trusted Fully Licensed Bitcoin Friendly Online Casino! 🎰\"},\"tournaments/drops-and-wins\":{\"description\":\"Drops & Wins! Cash prizes tournament – It only takes a spin to win! 🎰\"},\"games/btc_games\":{\"description\":\"BTC Games Free Slots Online. Play with Wild Tornado and Win Money 🎰\"},\"games/live_games\":{\"description\":\"Play Live Games For Free Online and get First Deposit Bonus 🎰\"},\"ru/games/video_poker\":{\"description\":\"Play Video Poker Online and get First Deposit Bonus on Wild Tornado\"},\"tournaments\":{\"description\":\"Read about latest tournaments of Wild Tornado Casino 🎲\"},\"responsible-gambling\":{\"description\":\"Responsible Gaming On Wild Tornado Casino\"},\"games/bonus_buy\":{\"description\":\"Get ready for Bonus Buy Slots ➤ Play Wild Tornado Online Casino worldwide\"},\"tournaments/cash-splash\":{\"description\":\"Dropwins Slot Machines Online 🎲 Play Dropwins For Free and get Free Spins\"},\"privacy-policy\":{\"description\":\"Read The Wild Tornado Privacy Policy 🎰\"},\"games/casino_jackpots\":{\"description\":\"Slot Games For Free Online With Huge Jackpots\"},\"games/dropwins\":{\"description\":\"Dropwin Slot Machine Online 🎲 Play For Free and Win Real Money\"},\"ru/games/table_games\":{\"description\":\"Настольные Игры бесплатно онлайн в лучшем биткойн-казино\"},\"sitemap\":{\"description\":\"Use Our Wild Tornado Casino Sitemap to Find What You Need\"},\"promotions/tornado-weekend\":{\"description\":\"Latest Slots with Double Points Only on Tornado Weekend\"}}"
@@ -104,3 +104,65 @@ const migrationsTitles = [
         data: "{\"es/games/table_games\":{\"description\":\"Reseñas de juegos de mesa, consejos y trucos. Juegos de mesa con dinero real\"},\"es/games/casino_slots\":{\"description\":\"Juega a las tragamonedas de casino gratis con dinero real 🎰\"},\"es/blizzard-royale\":{\"description\":\"Juega a la máquina tragamonedas Blizzard Royale ™ y gana dinero real 🎰\"},\"es/games/hot\":{\"description\":\"Echa un vistazo a nuestras tragamonedas Hot Game aquí mismo en Wild Tornado\"},\"es/about-wildtornado\":{\"description\":\"¡El casino en línea compatible con Bitcoin con licencia completa más confiable! 🎰\"},\"es/tournaments/drops-and-wins\":{\"description\":\"¡Gotas y victorias! Torneo de premios en efectivo: ¡solo se necesita un giro para ganar! 🎰\"},\"es/games/btc_games\":{\"description\":\"Juegos de BTC tragamonedas gratis en línea. Juega con Wild Tornado y gana dinero 🎰\"},\"es/games/live_games\":{\"description\":\"Juega juegos en vivo gratis en línea y obtén el bono por primer depósito 🎰\"},\"es/tournaments\":{\"description\":\"Lea sobre los últimos torneos de Wild Tornado Casino 🎲\"},\"es/responsible-gambling\":{\"description\":\"Juego responsable en Wild Tornado Casino\"},\"es/games/bonus_buy\":{\"description\":\"Prepárese para comprar tragamonedas con bonificación ➤ Jugar al casino online Wild Tornado en todo el mundo\"},\"es/tournaments/cash-splash\":{\"description\":\"Máquinas tragamonedas Dropwins en línea 🎲 Juega Dropwins gratis y obtén giros gratis\"},\"es/privacy-policy\":{\"description\":\"Lea la política de privacidad de The Wild Tornado 🎰\"},\"es/games/casino_jackpots\":{\"description\":\"Juegos de tragamonedas gratis en línea con enormes botes\"},\"es/games/dropwins\":{\"description\":\"Máquina tragamonedas Dropwin en línea 🎲 Juega gratis y gana dinero real\"},\"es/sitemap\":{\"description\":\"Utilice nuestro mapa del sitio de Wild Tornado Casino para encontrar lo que necesita\"},\"es/promotions/tornado-weekend\":{\"description\":\"Últimas tragamonedas con puntos dobles solo en Tornado Weekend\"}}"
     },
 ];
+
+let allLocales = [...migrationsDesc, ...migrationsTitles].reduce((result, {locales}) => {
+    return [...result, ...locales];
+}, []).filter((item, index, originalArr) => {
+    return originalArr.indexOf(item) === index;
+}).map((locale) => {
+    return locale.toLowerCase();
+});
+
+let localesRegexp = new RegExp(`^(${allLocales.join('|')})\/`);
+
+let replaceDataUrls = (item) => {
+    item.data = JSON.parse(item.data);
+    item.data = Object.keys(item.data).reduce((result, key) => {
+        const newKey = key.replace(localesRegexp, '').replace(/^\//, '');
+        result[newKey] = item.data[key];
+        return result;
+    }, {});
+}
+
+let generateLocalesKeys = (item) => {
+    item.localesKey = item.locales.sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+    }).join('&');
+}
+
+migrationsDesc.forEach(replaceDataUrls);
+migrationsTitles.forEach(replaceDataUrls);
+
+migrationsDesc.forEach(generateLocalesKeys);
+migrationsTitles.forEach(generateLocalesKeys);
+
+migrationsTitles.forEach((titleObj) => {
+   const descriptions =  migrationsDesc.find(({localesKey}) => localesKey === titleObj.localesKey);
+   if (descriptions) {
+       Object.keys(titleObj.data).forEach((key) => {
+         if (descriptions.data[key]) {
+             descriptions.data[key].title = titleObj.data[key].description;
+         } else {
+             console.info(`Page ${key} need to change only description`);
+         }
+       })
+   } else {
+       console.error('something wrong');
+   }
+})
+
+let migration = migrationsDesc.reduce((result, {locales, data}) => {
+    Object.keys(data).forEach((page) => {
+       result[page] = result[page] || {};
+       locales.forEach((locale) => {
+           result[page][locale] = {};
+           if (data[page].title) {
+               result[page][locale]['page[blocks_attributes][1][content]'] = data[page].title;
+           }
+           if (data[page].description) {
+               result[page][locale]['page[blocks_attributes][3][content]'] = data[page].description;
+           }
+       })
+    })
+    return result;
+}, {});

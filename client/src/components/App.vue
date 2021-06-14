@@ -8,6 +8,7 @@
       <span>Navigation</span>
       <router-link to="/" exact>Edit page/snippet</router-link>
       <router-link to="/files" exact>Edit files</router-link>
+      <router-link to="/apply-migrations" exact>Apply page/snippet migration</router-link>
     </nav>
     <router-view></router-view>
   </div>

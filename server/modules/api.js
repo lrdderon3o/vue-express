@@ -107,6 +107,45 @@ app.get('/page-info', (req, res) => {
     }
 });
 
+app.get('/collect-pages', (req, res) => {
+    const {auth, snippets} = req.query || {};
+    if (auth) {
+        const page = `https://wildtornado.casino-backend.com/backend/cms/sites/4/${+snippets ? 'snippets' : 'pages'}`;
+        const splitter = '/backend';
+        const [domain, pageUrl] = page.split(splitter);
+        const parser = new Parser(domain, auth);
+        parser.getPage(splitter + pageUrl).then((data) => {
+            const rows = data.html.querySelectorAll('[id^=comfy_cms_]');
+            const pages = [];
+            rows.forEach((row) => {
+               const titleElem = row.querySelector('.item-title');
+               const metaElem = row.querySelector('.item-meta');
+
+               if (titleElem && metaElem) {
+                   const categories = titleElem.querySelectorAll('.category').map((categoryElem) => {
+                        categoryElem.remove();
+                        return categoryElem.innerText;
+                   });
+                   const {'id': rowId} = row.rawAttributes;
+                   const [type, id] = rowId.replace('comfy_cms_', '').split('_');
+                   const url = `https://wildtornado.casino-backend.com/backend/cms/sites/4/${type}s/${id}/edit`
+                   pages.push({
+                       title: parser.desanitize(titleElem.innerText).trim(),
+                       meta: parser.desanitize(metaElem.innerText).trim(),
+                       categories,
+                       url
+                   })
+               }
+            });
+            res.json({data: pages});
+        }).catch(() => {
+            res.status(500).send('Get general page error');
+        })
+    } else {
+        res.status(500).send('Auth error')
+    }
+});
+
 app.get('/search-files', (req, res) => {
     const {fileName, auth} = req.query || {};
     if (fileName && auth) {
@@ -170,13 +209,21 @@ app.post('/update-page', (req, res) =>  {
 });
 
 app.post('/update-one-page', (req, res) =>  {
-    const {page, auth} = req.query || {};
+    const {page, locale, auth} = req.query || {};
     if (page && auth) {
         const splitter = '/backend';
-        const [domain, pageUrl] = page.split(splitter);
+        let [domain, pageUrl] = page.split(splitter);
         const parser = new Parser(domain, auth);
         let {newValues} = req.body;
         parser.getPage(splitter + pageUrl).then((page) => {
+            if (locale) {
+                const localeInMirrors = Object.keys(page.mirrors).find((mirrorLocale) => {
+                    return page.mirrors[mirrorLocale].toLowerCase() === locale.toLowerCase();
+                });
+                if (localeInMirrors) {
+                    pageUrl = page.mirrors[localeInMirrors];
+                }
+            }
             const body = parser.getPreparedBody(page.html, newValues, parser.defaultSanitize);
             parser.updatePage(splitter + pageUrl.replace('/edit', ''), body).then(() => {
                 res.json('Update done');
