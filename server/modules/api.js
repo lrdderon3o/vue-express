@@ -91,6 +91,81 @@ const collectFilesFromPage = (parser, filesPages) => {
     });
 }
 
+const getAllFiles = (auth) => {
+    const parser = new Parser(null, auth);
+    return getFilesMirrors(parser).then((mirrors = []) => {
+        return new Promise((resolve) => {
+            let filesPages = [];
+            const next = () => {
+                const mirror = mirrors.shift();
+                if (mirror) {
+                    collectFilesPages(parser, mirror).then((mirrorPages) => {
+                        if (mirrorPages.length) {
+                            filesPages = [...filesPages, ...mirrorPages];
+                        } else {
+                            filesPages.push(mirror);
+                        }
+                        next();
+                    }).catch(() => {
+                        next();
+                    })
+                } else {
+                    resolve(filesPages);
+                }
+            }
+            next();
+        }).then((filesPages) => {
+            return collectFilesFromPage(parser, filesPages).catch(() => {
+                return Promise.reject('Collect files from pages error')
+            });
+        });
+    }).catch((error) => {
+        return Promise.reject(typeof error === 'string' ? error : 'Get files mirrors error');
+    })
+};
+
+const getPagesContent = (auth, pages) => {
+    const parser = new Parser(null, auth);
+    return new Promise((resolve) => {
+
+        const pagesContent = {}
+
+        const next = () => {
+            const page = pages.shift();
+            if (page) {
+                const pageUrl = page.pageUrl || page.editUrl;
+                if (pageUrl) {
+                    parser.getPage(pageUrl).then((data) => {
+                        pagesContent[pageUrl] = parser.getPreparedPageEditJSON(data);
+                        next();
+                    }).catch(() => {
+                        next();
+                    })
+                } else {
+                    next();
+                }
+            } else {
+                resolve(pagesContent);
+            }
+        }
+
+        next();
+    });
+};
+
+const getSnippetsFromPageFields = (fields) => {
+    return Object.keys(fields || {}).reduce((result, fieldKey) => {
+        const fieldValue = fields[fieldKey];
+        const snippetRegexp = new RegExp(/<casino-snippet.*?casino-snippet>/, 'gs')
+        const snippets = String(fieldValue).match(snippetRegexp);
+        return snippets ? [...result, ...snippets] : result;
+    }, []).map((snippetName) => {
+        const typeRegex =  new RegExp(/type=.*?"(.*)"/, 'gms');
+        const [typeMatch, name] = typeRegex.exec(snippetName);
+        return name && name.replace(/\\/gm, '');
+    }).filter((item) => item);
+}
+
 app.get('/page-info', (req, res) => {
     const {page, auth} = req.query || {};
     if (page && auth) {
@@ -149,40 +224,38 @@ app.get('/collect-pages', (req, res) => {
 app.get('/search-files', (req, res) => {
     const {fileName, auth} = req.query || {};
     if (fileName && auth) {
-        const parser = new Parser(null, auth);
-        getFilesMirrors(parser).then((mirrors = []) => {
-            let filesPages = [];
+        getAllFiles(auth).then((files) => {
+            const searchedFiles = files.filter((file) => {
+                return String(file.title).toLowerCase().indexOf(fileName.toLowerCase()) !== -1 ||
+                    String(file.icon).toLowerCase().indexOf(fileName.toLowerCase()) !== -1;
+            })
+            res.json({...{files: searchedFiles}});
+        }).catch((error) => {
+            res.status(500).send(error);
+        });
+    } else {
+        res.status(500).send('Auth error')
+    }
+});
 
-            const next = () => {
-                const mirror = mirrors.shift();
-                if (mirror) {
-                    collectFilesPages(parser, mirror).then((mirrorPages) => {
-                        if (mirrorPages.length) {
-                            filesPages = [...filesPages, ...mirrorPages];
-                        } else {
-                            filesPages.push(mirror);
-                        }
-                        next();
-                    }).catch(() => {
-                        next();
-                    })
-                } else {
-                    collectFilesFromPage(parser, filesPages).then((files) => {
-                        const searchedFiles = files.filter((file) => {
-                            return String(file.title).toLowerCase().indexOf(fileName.toLowerCase()) !== -1 ||
-                            String(file.icon).toLowerCase().indexOf(fileName.toLowerCase()) !== -1;
-                        })
-                        res.json({...{files: searchedFiles}});
-                    }).catch(() => {
-                        res.status(500).send('Collect files from pages error');
-                    })
-                }
-            }
+app.get('/search-used/snippets', (req, res) => {
+    const {auth} = req.query || {};
+    if (auth) {
+        // Search in files
+        getAllFiles(auth).then((files) => {
+            files = files.slice(0, 10);
 
-            next();
 
-        }).catch(() => {
-            res.status(500).send('Get files mirrors error');
+
+            getPagesContent(auth, [...files]).then((pagesContent) => {
+                Object.keys(pagesContent).forEach((pageUrl) => {
+                    const {fields} = pagesContent[pageUrl] || {};
+                   console.log(pageUrl, getSnippetsFromPageFields(fields))
+                });
+                res.json({pagesContent, files});
+            });
+        }).catch((error) => {
+            res.status(500).send(error);
         });
     } else {
         res.status(500).send('Auth error')

@@ -9,6 +9,7 @@
       <router-link to="/" exact>Edit page/snippet</router-link>
       <router-link to="/files" exact>Edit files</router-link>
       <router-link to="/apply-migrations" exact>Apply page/snippet migration</router-link>
+      <router-link to="/search-used" exact>Search used snippets/files</router-link>
     </nav>
     <router-view></router-view>
   </div>

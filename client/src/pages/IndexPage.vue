@@ -64,6 +64,37 @@
                 }
                 newValues[contentProp] = newHTML.toString();
             }
+
+
+
+            // Add tournament after tournament
+            const insertElementContent = `` // Your HTML content
+            const elementIdentifier = 'tournaments/yggdrasil-gigamania';
+
+            const contentProp = 'page[blocks_attributes][0][content]';
+            const insertAfter = 'tournaments/spinomenal-summer-treasures'
+            const content = jsonBody && jsonBody[contentProp];
+            if (content) {
+                const newHTML = parse(content);
+                let insertAfterElement;
+                let alreadyAdded;
+                newHTML.querySelectorAll('li').forEach((li) => {
+                    const insertAfterLi = li.toString().indexOf(insertAfter) !== -1;
+                    const insertElementLi = li.toString().indexOf(elementIdentifier) !== -1;
+                    if (insertAfterLi) {
+                        log('Insert after tournament found');
+                        insertAfterElement = li;
+                    }
+                    if (insertElementLi) {
+                        alreadyAdded = true;
+                        log('Element already added', 'error');
+                    }
+                });
+                if (insertAfterElement && !alreadyAdded) {
+                    insertAfterElement.insertAdjacentHTML('afterend', '\n\n' + insertElementContent);
+                }
+                newValues[contentProp] = newHTML.toString();
+            }
           </pre>
         </div>
         <textarea placeholder="Script" rows="16" v-model="script"></textarea>
